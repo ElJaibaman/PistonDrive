@@ -4,62 +4,68 @@ namespace App\Http\Controllers;
 
 use App\Models\Cliente;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ClienteController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(): Response
     {
-        //
+        $clientes = Cliente::withCount('vehiculos')
+            ->orderBy('nombre')
+            ->paginate(15);
+
+        return Inertia::render('Clientes/Index', [
+            'clientes' => $clientes,
+        ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function create(): Response
     {
-        //
+        return Inertia::render('Clientes/Form', ['cliente' => null]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        $data = $request->validate([
+            'nombre'           => 'required|string|max:100',
+            'numero_identidad' => 'nullable|string|max:20|unique:clientes,numero_identidad',
+            'procedencia'      => 'nullable|string|max:100',
+            'telefono'         => 'nullable|string|max:20',
+            'correo'           => 'nullable|email|max:100',
+        ]);
+
+        Cliente::create($data);
+
+        return redirect()->route('clientes.index')
+            ->with('success', 'Cliente creado correctamente.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Cliente $cliente)
+    public function edit(Cliente $cliente): Response
     {
-        //
+        return Inertia::render('Clientes/Form', ['cliente' => $cliente]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Cliente $cliente)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, Cliente $cliente)
     {
-        //
+        $data = $request->validate([
+            'nombre'           => 'required|string|max:100',
+            'numero_identidad' => 'nullable|string|max:20|unique:clientes,numero_identidad,' . $cliente->id,
+            'procedencia'      => 'nullable|string|max:100',
+            'telefono'         => 'nullable|string|max:20',
+            'correo'           => 'nullable|email|max:100',
+        ]);
+
+        $cliente->update($data);
+
+        return redirect()->route('clientes.index')
+            ->with('success', 'Cliente actualizado correctamente.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Cliente $cliente)
     {
-        //
+        $cliente->delete();
+        return redirect()->route('clientes.index')
+            ->with('success', 'Cliente eliminado.');
     }
 }

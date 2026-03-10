@@ -1,65 +1,75 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Secretaria;
 
+use App\Http\Controllers\Controller;
 use App\Models\Cotizacion;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class CotizacionController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(): Response
     {
-        //
+        $cotizaciones = Cotizacion::with([
+                'orden.vehiculo.cliente',
+                'orden.mecanico',
+            ])
+            ->orderByRaw("FIELD(estado,'pendiente','aprobada','rechazada')")
+            ->orderByDesc('created_at')
+            ->paginate(15);
+
+        return Inertia::render('Secretaria/Cotizaciones/Index', [
+            'cotizaciones' => $cotizaciones,
+        ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function show(Cotizacion $cotizacion): Response
     {
-        //
+        $cotizacion->load([
+            'orden.vehiculo.cliente',
+            'orden.mecanico',
+            'piezas',
+            'manoObra',
+        ]);
+
+        return Inertia::render('Secretaria/Cotizaciones/Show', [
+            'cotizacion' => $cotizacion,
+        ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function aprobar(Request $request, Cotizacion $cotizacion)
     {
-        //
+        $request->validate([
+            'nota_secretaria' => 'nullable|string|max:500',
+        ]);
+
+        $cotizacion->update([
+            'estado'          => 'aprobada',
+            'nota_secretaria' => $request->nota_secretaria,
+        ]);
+
+        $cotizacion->orden->update(['estado' => 'aprobado']);
+
+        return redirect()->route('secretaria.cotizaciones.index')
+            ->with('success', 'Cotización aprobada. El mecánico puede continuar.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Cotizacion $cotizacion)
+    public function rechazar(Request $request, Cotizacion $cotizacion)
     {
-        //
-    }
+        $request->validate([
+            'nota_secretaria' => 'required|string|max:500',
+        ]);
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Cotizacion $cotizacion)
-    {
-        //
-    }
+        $cotizacion->update([
+            'estado'          => 'rechazada',
+            'nota_secretaria' => $request->nota_secretaria,
+        ]);
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Cotizacion $cotizacion)
-    {
-        //
-    }
+        $cotizacion->orden->update(['estado' => 'rechazado']);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Cotizacion $cotizacion)
-    {
-        //
+        return redirect()->route('secretaria.cotizaciones.index')
+            ->with('success', 'Cotización rechazada. El mecánico fue notificado.');
     }
 }

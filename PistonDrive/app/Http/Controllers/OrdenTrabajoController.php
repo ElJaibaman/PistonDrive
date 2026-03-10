@@ -3,63 +3,101 @@
 namespace App\Http\Controllers;
 
 use App\Models\OrdenTrabajo;
+use App\Models\Vehiculo;
+use App\Models\Mecanico;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class OrdenTrabajoController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(): Response
     {
-        //
+        $ordenes = OrdenTrabajo::with(['vehiculo.cliente', 'mecanico', 'cotizacion'])
+            ->orderByDesc('created_at')
+            ->paginate(15);
+
+        return Inertia::render('Ordenes/Index', [
+            'ordenes' => $ordenes,
+            'estados' => OrdenTrabajo::$estados,
+        ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function create(): Response
     {
-        //
+        return Inertia::render('Ordenes/Form', [
+            'orden'     => null,
+            'vehiculos' => Vehiculo::with('cliente')->orderBy('marca')->get(),
+            'mecanicos' => Mecanico::where('activo', true)->orderBy('nombre')->get(),
+            'estados'   => OrdenTrabajo::$estados,
+        ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        $data = $request->validate([
+            'vehiculo_id'     => 'required|exists:vehiculos,id',
+            'mecanico_id'     => 'nullable|exists:mecanicos,id',
+            'fecha_ingreso'   => 'required|date',
+            'fecha_prometida' => 'nullable|date|after_or_equal:fecha_ingreso',
+            'estado'          => 'required|in:pendiente,en_proceso',
+            'kilometraje'     => 'nullable|integer|min:0',
+            'observaciones'   => 'nullable|string',
+        ]);
+
+        OrdenTrabajo::create($data);
+
+        return redirect()->route('ordenes.index')
+            ->with('success', 'Orden de trabajo creada.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(OrdenTrabajo $ordenTrabajo)
+    public function show(OrdenTrabajo $orden): Response
     {
-        //
+        $orden->load([
+            'vehiculo.cliente', 'mecanico',
+            'detalles', 'ticket.garantia',
+            'cotizacion.items',
+        ]);
+
+        return Inertia::render('Ordenes/Show', [
+            'orden'   => $orden,
+            'estados' => OrdenTrabajo::$estados,
+        ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(OrdenTrabajo $ordenTrabajo)
+    public function edit(OrdenTrabajo $orden): Response
     {
-        //
+        return Inertia::render('Ordenes/Form', [
+            'orden'     => $orden,
+            'vehiculos' => Vehiculo::with('cliente')->orderBy('marca')->get(),
+            'mecanicos' => Mecanico::where('activo', true)->orderBy('nombre')->get(),
+            'estados'   => OrdenTrabajo::$estados,
+        ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, OrdenTrabajo $ordenTrabajo)
+    public function update(Request $request, OrdenTrabajo $orden)
     {
-        //
+        $data = $request->validate([
+            'vehiculo_id'     => 'required|exists:vehiculos,id',
+            'mecanico_id'     => 'nullable|exists:mecanicos,id',
+            'fecha_ingreso'   => 'required|date',
+            'fecha_prometida' => 'nullable|date',
+            'fecha_entrega'   => 'nullable|date',
+            'estado'          => 'required|in:' . implode(',', array_keys(OrdenTrabajo::$estados)),
+            'kilometraje'     => 'nullable|integer|min:0',
+            'observaciones'   => 'nullable|string',
+        ]);
+
+        $orden->update($data);
+
+        return redirect()->route('ordenes.index')
+            ->with('success', 'Orden actualizada.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(OrdenTrabajo $ordenTrabajo)
+    public function destroy(OrdenTrabajo $orden)
     {
-        //
+        $orden->delete();
+        return redirect()->route('ordenes.index')
+            ->with('success', 'Orden eliminada.');
     }
 }
