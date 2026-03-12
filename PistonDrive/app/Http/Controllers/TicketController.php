@@ -23,6 +23,16 @@ class TicketController extends Controller
         ]);
     }
 
+    public function create(Request $request): Response
+    {
+        $orden = OrdenTrabajo::with(['vehiculo.cliente', 'mecanico', 'cotizacion'])
+            ->findOrFail($request->orden_id);
+
+        return Inertia::render('Tickets/Create', [
+            'orden' => $orden,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
