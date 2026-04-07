@@ -4,7 +4,7 @@ import { Link } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 
 const props = defineProps({
-    tickets: {
+    cotizaciones: {
         type: Object,
         default: () => ({ data: [] })
     }
@@ -12,37 +12,27 @@ const props = defineProps({
 
 const busqueda = ref('');
 
-const garantiaConfig = {
-    vigente: { bg: 'rgba(72,187,120,0.1)',  color: '#276749', dot: '#48BB78', label: 'Vigente'  },
-    vencida: { bg: 'rgba(192,25,42,0.1)',   color: '#9B1422', dot: '#C0192A', label: 'Vencida'  },
-    anulada: { bg: '#F7FAFC',               color: '#A0AEC0', dot: '#CBD5E0', label: 'Anulada'  },
+const estadoCot = {
+    pendiente: { bg: 'rgba(237,137,54,0.1)',  color: '#C05621', dot: '#ED8936', label: 'Pendiente' },
+    aprobada:  { bg: 'rgba(72,187,120,0.1)',  color: '#276749', dot: '#48BB78', label: 'Aprobada'  },
+    rechazada: { bg: 'rgba(192,25,42,0.1)',   color: '#9B1422', dot: '#C0192A', label: 'Rechazada' },
 };
-
-const pagoConfig = {
-    efectivo:     { bg: 'rgba(72,187,120,0.08)',  color: '#276749', label: 'Efectivo'     },
-    tarjeta:      { bg: 'rgba(43,108,176,0.08)',  color: '#2B6CB0', label: 'Tarjeta'      },
-    transferencia:{ bg: 'rgba(128,90,213,0.08)',  color: '#553C9A', label: 'Transferencia'},
-};
-
-function estadoGarantia(g) {
-    if (!g) return { bg: '#F7FAFC', color: '#CBD5E0', dot: '#E2E8F0', label: 'Sin garantía' };
-    return garantiaConfig[g.estado] ?? garantiaConfig.anulada;
-}
 
 const filtrados = computed(() => {
-    if (!busqueda.value) return props.tickets.data;
+    if (!busqueda.value) return props.cotizaciones.data;
     const q = busqueda.value.toLowerCase();
-    return props.tickets.data.filter(t =>
-        t.orden.vehiculo.cliente.nombre.toLowerCase().includes(q) ||
-        t.orden.vehiculo.marca.toLowerCase().includes(q) ||
-        t.orden.vehiculo.modelo.toLowerCase().includes(q) ||
-        String(t.id).includes(q)
+    return props.cotizaciones.data.filter(c =>
+        c.orden.vehiculo.cliente.nombre.toLowerCase().includes(q) ||
+        c.orden.vehiculo.marca.toLowerCase().includes(q) ||
+        (c.orden.mecanico?.nombre?.toLowerCase().includes(q)) ||
+        String(c.id).includes(q)
     );
 });
 
-const totalTickets  = computed(() => props.tickets.data.length);
-const totalIngresos = computed(() => props.tickets.data.reduce((s, t) => s + parseFloat(t.total || 0), 0));
-const garantiasVig  = computed(() => props.tickets.data.filter(t => t.garantia?.estado === 'vigente').length);
+const totalCotizaciones = computed(() => props.cotizaciones.data.length);
+const pendientes = computed(() => props.cotizaciones.data.filter(c => c.estado === 'pendiente').length);
+const aprobadas  = computed(() => props.cotizaciones.data.filter(c => c.estado === 'aprobada').length);
+const rechazadas = computed(() => props.cotizaciones.data.filter(c => c.estado === 'rechazada').length);
 
 function iniciales(nombre) {
     if (!nombre) return '?';
@@ -64,33 +54,43 @@ function iniciales(nombre) {
                                 <polyline points="14,2 14,8 20,8" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
                                 <line x1="16" y1="13" x2="8" y2="13" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
                                 <line x1="16" y1="17" x2="8" y2="17" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-                                <polyline points="10,9 9,9 8,9" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
                             </svg>
                         </div>
                         <div>
-                            <h1 class="hero-title">Tickets emitidos</h1>
-                            <p class="hero-sub">Historial de cobros y garantías</p>
+                            <h1 class="hero-title">Cotizaciones</h1>
+                            <p class="hero-sub">Revisión de cotizaciones enviadas por mecánicos</p>
                         </div>
+                    </div>
+                    <!-- Badge de pendientes destacado -->
+                    <div class="pending-badge" v-if="pendientes > 0">
+                        <div class="pending-dot" />
+                        {{ pendientes }} pendiente{{ pendientes !== 1 ? 's' : '' }} de revisión
                     </div>
                 </div>
 
                 <div class="hero-stats">
                     <div class="stat-pill">
                         <div class="stat-dot" style="background:#C0192A" />
-                        <span class="stat-num">{{ totalTickets }}</span>
-                        <span class="stat-label">Total tickets</span>
+                        <span class="stat-num">{{ totalCotizaciones }}</span>
+                        <span class="stat-label">Total</span>
+                    </div>
+                    <div class="stat-divider" />
+                    <div class="stat-pill">
+                        <div class="stat-dot" style="background:#ED8936" />
+                        <span class="stat-num">{{ pendientes }}</span>
+                        <span class="stat-label">Pendientes</span>
                     </div>
                     <div class="stat-divider" />
                     <div class="stat-pill">
                         <div class="stat-dot" style="background:#48BB78" />
-                        <span class="stat-num">{{ garantiasVig }}</span>
-                        <span class="stat-label">Garantías vigentes</span>
+                        <span class="stat-num">{{ aprobadas }}</span>
+                        <span class="stat-label">Aprobadas</span>
                     </div>
                     <div class="stat-divider" />
                     <div class="stat-pill">
-                        <div class="stat-dot" style="background:#4A5568" />
-                        <span class="stat-num">L. {{ totalIngresos.toFixed(2) }}</span>
-                        <span class="stat-label">Total ingresos</span>
+                        <div class="stat-dot" style="background:#C0192A" />
+                        <span class="stat-num">{{ rechazadas }}</span>
+                        <span class="stat-label">Rechazadas</span>
                     </div>
                 </div>
             </div>
@@ -102,7 +102,7 @@ function iniciales(nombre) {
                         <circle cx="11" cy="11" r="8" stroke="#A0AEC0" stroke-width="1.8"/>
                         <path d="m21 21-4.35-4.35" stroke="#A0AEC0" stroke-width="1.8" stroke-linecap="round"/>
                     </svg>
-                    <input v-model="busqueda" class="search-input" placeholder="Buscar por cliente, vehículo o ID..." />
+                    <input v-model="busqueda" class="search-input" placeholder="Buscar por cliente, vehículo, mecánico o ID..." />
                     <button v-if="busqueda" class="search-clear" @click="busqueda = ''">✕</button>
                 </div>
                 <div class="results-badge" v-if="busqueda">
@@ -116,25 +116,30 @@ function iniciales(nombre) {
                 <table class="pd-table">
                     <thead>
                         <tr>
-                            <th>Ticket</th>
+                            <th>#</th>
+                            <th>Orden</th>
                             <th>Cliente</th>
                             <th>Vehículo</th>
-                            <th class="text-right">Total (L.)</th>
-                            <th>Método de pago</th>
-                            <th>Garantía</th>
-                            <th>Fecha</th>
+                            <th>Mecánico</th>
+                            <th class="text-right">Piezas</th>
+                            <th class="text-right">Mano obra</th>
+                            <th class="text-right">Total</th>
+                            <th>Estado</th>
                             <th class="col-center">Ver</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="t in filtrados" :key="t.id" class="pd-row">
+                        <tr v-for="c in filtrados" :key="c.id" class="pd-row" :class="{ 'row-pending': c.estado === 'pendiente' }">
                             <td class="cell-id">
-                                <span class="id-badge">#{{ t.id }}</span>
+                                <span class="id-badge">#{{ c.id }}</span>
+                            </td>
+                            <td class="cell-data">
+                                <span class="orden-badge">#{{ c.orden.id }}</span>
                             </td>
                             <td class="cell-data">
                                 <div class="cliente-wrap">
-                                    <div class="cliente-av">{{ iniciales(t.orden.vehiculo.cliente.nombre) }}</div>
-                                    <span class="cliente-nombre">{{ t.orden.vehiculo.cliente.nombre }}</span>
+                                    <div class="cliente-av">{{ iniciales(c.orden.vehiculo.cliente.nombre) }}</div>
+                                    <span class="cliente-nombre">{{ c.orden.vehiculo.cliente.nombre }}</span>
                                 </div>
                             </td>
                             <td class="cell-data">
@@ -142,36 +147,48 @@ function iniciales(nombre) {
                                     <div class="vehiculo-icon">
                                         <svg width="13" height="13" viewBox="0 0 24 24" fill="#9B1422"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99z"/></svg>
                                     </div>
-                                    <span class="vehiculo-nombre">{{ t.orden.vehiculo.marca }} {{ t.orden.vehiculo.modelo }}</span>
+                                    <span class="vehiculo-nombre">{{ c.orden.vehiculo.marca }} {{ c.orden.vehiculo.modelo }}</span>
                                 </div>
                             </td>
+                            <td class="cell-data">
+                                <div class="mecanico-wrap" v-if="c.orden.mecanico">
+                                    <div class="mecanico-av">{{ iniciales(c.orden.mecanico.nombre) }}</div>
+                                    <span class="mecanico-nombre">{{ c.orden.mecanico.nombre }}</span>
+                                </div>
+                                <span v-else class="data-empty">—</span>
+                            </td>
                             <td class="cell-data text-right">
-                                <span class="total-amount">L. {{ parseFloat(t.total).toFixed(2) }}</span>
+                                <span class="amount-text">L. {{ parseFloat(c.total_piezas).toFixed(2) }}</span>
+                            </td>
+                            <td class="cell-data text-right">
+                                <span class="amount-text">L. {{ parseFloat(c.total_mano_obra).toFixed(2) }}</span>
+                            </td>
+                            <td class="cell-data text-right">
+                                <span class="total-amount">L. {{ parseFloat(c.total_general).toFixed(2) }}</span>
                             </td>
                             <td class="cell-data">
-                                <span class="pago-chip" :style="{ background: pagoConfig[t.metodo_pago]?.bg ?? '#F7FAFC', color: pagoConfig[t.metodo_pago]?.color ?? '#718096' }">
-                                    {{ pagoConfig[t.metodo_pago]?.label ?? t.metodo_pago }}
+                                <span class="estado-chip" :style="{ background: estadoCot[c.estado]?.bg, color: estadoCot[c.estado]?.color }">
+                                    <span class="estado-dot" :style="{ background: estadoCot[c.estado]?.dot }" />
+                                    {{ estadoCot[c.estado]?.label }}
                                 </span>
-                            </td>
-                            <td class="cell-data">
-                                <span class="garantia-chip" :style="{ background: estadoGarantia(t.garantia).bg, color: estadoGarantia(t.garantia).color }">
-                                    <span class="garantia-dot" :style="{ background: estadoGarantia(t.garantia).dot }" />
-                                    {{ estadoGarantia(t.garantia).label }}
-                                </span>
-                            </td>
-                            <td class="cell-data">
-                                <span class="fecha-text">{{ t.created_at?.slice(0, 10) }}</span>
                             </td>
                             <td class="cell-center">
-                                <Link :href="route('tickets.show', t.id)">
-                                    <button class="btn-action btn-view" title="Ver ticket">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>
+                                <Link :href="route('secretaria.cotizaciones.show', c.id)">
+                                    <button class="btn-action" :class="c.estado === 'pendiente' ? 'btn-review' : 'btn-view'" :title="c.estado === 'pendiente' ? 'Revisar' : 'Ver detalle'">
+                                        <svg v-if="c.estado === 'pendiente'" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                        </svg>
+                                        <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/>
+                                            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                                        </svg>
                                     </button>
                                 </Link>
                             </td>
                         </tr>
                         <tr v-if="filtrados.length === 0">
-                            <td colspan="8" class="empty-cell">
+                            <td colspan="10" class="empty-cell">
                                 <div class="empty-wrap">
                                     <div class="empty-icon-ring">
                                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
@@ -179,8 +196,8 @@ function iniciales(nombre) {
                                             <polyline points="14,2 14,8 20,8" stroke="#CBD5E0" stroke-width="1.5" stroke-linecap="round"/>
                                         </svg>
                                     </div>
-                                    <p class="empty-title">Sin tickets registrados</p>
-                                    <p class="empty-sub">Los tickets aparecen al completar una orden</p>
+                                    <p class="empty-title">No hay cotizaciones</p>
+                                    <p class="empty-sub">Las cotizaciones de los mecánicos aparecerán aquí</p>
                                 </div>
                             </td>
                         </tr>
@@ -200,6 +217,11 @@ function iniciales(nombre) {
 .hero-icon-wrap { width: 48px; height: 48px; background: linear-gradient(135deg, #C0192A, #9B1422); border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(192,25,42,0.35); flex-shrink: 0; }
 .hero-title { font-size: 1.55rem; font-weight: 800; color: #1A202C; margin: 0; letter-spacing: -0.5px; }
 .hero-sub { font-size: 0.8rem; color: #A0AEC0; margin: 3px 0 0; }
+
+.pending-badge { display: flex; align-items: center; gap: 8px; background: rgba(237,137,54,0.1); border: 1px solid rgba(237,137,54,0.3); color: #C05621; font-size: 0.82rem; font-weight: 700; padding: 8px 16px; border-radius: 20px; }
+.pending-dot { width: 8px; height: 8px; border-radius: 50%; background: #ED8936; animation: pulse 1.5s infinite; flex-shrink: 0; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
 .hero-stats { display: flex; align-items: center; border-top: 1px solid #EDF2F7; }
 .stat-pill { display: flex; align-items: center; gap: 8px; padding: 14px 24px 14px 0; margin-right: 24px; }
 .stat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
@@ -223,15 +245,20 @@ function iniciales(nombre) {
 .pd-table th { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.9px; color: #718096; padding: 13px 16px; text-align: left; white-space: nowrap; }
 .col-center { text-align: center !important; }
 .text-right { text-align: right !important; }
+
 .pd-row { border-bottom: 1px solid #F7FAFC; transition: background 0.12s; }
 .pd-row:last-child { border-bottom: none; }
 .pd-row:hover { background: #FFF5F5; }
 .pd-row:hover .id-badge { color: #C0192A; background: rgba(192,25,42,0.08); }
+.row-pending { border-left: 3px solid #ED8936; }
 
 .cell-id { padding: 14px 16px; }
 .id-badge { font-size: 0.75rem; font-weight: 700; color: #CBD5E0; background: #F7FAFC; padding: 3px 8px; border-radius: 6px; transition: all 0.12s; }
 .cell-data { padding: 13px 16px; font-size: 0.875rem; color: #4A5568; }
 .cell-center { text-align: center; padding: 13px 16px; }
+.data-empty { color: #E2E8F0; font-size: 0.82rem; }
+
+.orden-badge { background: #EDF2F7; color: #2D3748; font-size: 0.75rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-family: monospace; }
 
 .cliente-wrap { display: flex; align-items: center; gap: 10px; }
 .cliente-av { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, #C0192A, #9B1422); display: flex; align-items: center; justify-content: center; font-size: 0.62rem; font-weight: 800; color: white; flex-shrink: 0; }
@@ -241,19 +268,22 @@ function iniciales(nombre) {
 .vehiculo-icon { width: 26px; height: 26px; background: rgba(192,25,42,0.06); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .vehiculo-nombre { font-weight: 600; color: #1A202C; font-size: 0.85rem; }
 
+.mecanico-wrap { display: flex; align-items: center; gap: 8px; }
+.mecanico-av { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, #4A5568, #2D3748); display: flex; align-items: center; justify-content: center; font-size: 0.58rem; font-weight: 800; color: white; flex-shrink: 0; }
+.mecanico-nombre { font-size: 0.85rem; color: #4A5568; }
+
+.amount-text { font-size: 0.82rem; color: #718096; font-family: monospace; }
 .total-amount { font-size: 0.9rem; font-weight: 800; color: #2D3748; font-family: monospace; }
 
-.pago-chip { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; text-transform: capitalize; }
+.estado-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
+.estado-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 
-.garantia-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
-.garantia-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-
-.fecha-text { font-size: 0.82rem; color: #718096; font-family: monospace; }
-
-.btn-action { width: 30px; height: 30px; border-radius: 8px; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.12s, transform 0.1s; margin: 0 auto; }
+.btn-action { width: 32px; height: 32px; border-radius: 8px; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.12s, transform 0.1s; margin: 0 auto; }
 .btn-action:hover { transform: scale(1.08); }
-.btn-view { background: rgba(45,55,72,0.08); color: #4A5568; }
-.btn-view:hover { background: rgba(45,55,72,0.15); }
+.btn-view   { background: rgba(45,55,72,0.08);   color: #4A5568; }
+.btn-view:hover   { background: rgba(45,55,72,0.15); }
+.btn-review { background: rgba(237,137,54,0.1);  color: #C05621; }
+.btn-review:hover { background: rgba(237,137,54,0.18); }
 
 .empty-cell { padding: 80px 16px !important; }
 .empty-wrap { text-align: center; }
