@@ -27,28 +27,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Vehículos
         Route::resource('vehiculos', VehiculoController::class);
 
-        // Mecánicos (CRUD + toggle activo)
+        // Mecánicos
         Route::resource('mecanicos', MecanicoController::class);
         Route::patch('mecanicos/{mecanico}/toggle-activo', [MecanicoController::class, 'toggleActivo'])
             ->name('mecanicos.toggle-activo');
 
         // Órdenes de trabajo
-        Route::resource('ordenes', OrdenTrabajoController::class);
+        Route::resource('ordenes', OrdenTrabajoController::class)
+            ->parameters(['ordenes' => 'orden']);
 
         // Detalles de servicio (anidados bajo órdenes)
         Route::prefix('ordenes/{orden}/detalles')
             ->name('ordenes.detalles.')
             ->group(function () {
-                Route::get('/',                        [DetalleServicioController::class, 'index'])->name('index');
-                Route::post('/',                       [DetalleServicioController::class, 'store'])->name('store');
-                Route::patch('/{detalle}',             [DetalleServicioController::class, 'update'])->name('update');
-                Route::delete('/{detalle}',            [DetalleServicioController::class, 'destroy'])->name('destroy');
+                Route::get('/',            [DetalleServicioController::class, 'index'])->name('index');
+                Route::post('/',           [DetalleServicioController::class, 'store'])->name('store');
+                Route::patch('/{detalle}', [DetalleServicioController::class, 'update'])->name('update');
+                Route::delete('/{detalle}',[DetalleServicioController::class, 'destroy'])->name('destroy');
             });
 
-        // Tickets
-        Route::get('tickets',           [TicketController::class, 'index'])->name('tickets.index');
-        Route::post('tickets',          [TicketController::class, 'store'])->name('tickets.store');
-        Route::get('tickets/{ticket}',  [TicketController::class, 'show'])->name('tickets.show');
+        // Tickets — create DEBE ir antes de {ticket}
+        Route::get('tickets',          [TicketController::class, 'index'])->name('tickets.index');
+        Route::get('tickets/create',   [TicketController::class, 'create'])->name('tickets.create');
+        Route::post('tickets',         [TicketController::class, 'store'])->name('tickets.store');
+        Route::get('tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
 
         // Cotizaciones (revisión por secretaria)
         Route::prefix('secretaria/cotizaciones')
@@ -66,10 +68,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->prefix('mecanico')
         ->name('mecanico.')
         ->group(function () {
-            Route::get('/ordenes',                      [MecanicoOrdenController::class, 'index'])->name('ordenes.index');
-            Route::get('/ordenes/{orden}',              [MecanicoOrdenController::class, 'show'])->name('ordenes.show');
-            Route::patch('/ordenes/{orden}/estado',     [MecanicoOrdenController::class, 'cambiarEstado'])->name('ordenes.estado');
-            Route::get('/ordenes/{orden}/cotizacion',   [MecanicoOrdenController::class, 'createCotizacion'])->name('cotizacion.create');
-            Route::post('/ordenes/{orden}/cotizacion',  [MecanicoOrdenController::class, 'storeCotizacion'])->name('cotizacion.store');
+            Route::get('/ordenes',                     [MecanicoOrdenController::class, 'index'])->name('ordenes.index');
+            Route::get('/ordenes/{orden}',             [MecanicoOrdenController::class, 'show'])->name('ordenes.show');
+            Route::patch('/ordenes/{orden}/estado',    [MecanicoOrdenController::class, 'cambiarEstado'])->name('ordenes.estado');
+            Route::get('/ordenes/{orden}/cotizacion',  [MecanicoOrdenController::class, 'createCotizacion'])->name('cotizacion.create');
+            Route::post('/ordenes/{orden}/cotizacion', [MecanicoOrdenController::class, 'storeCotizacion'])->name('cotizacion.store');
         });
 });

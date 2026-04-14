@@ -85,10 +85,7 @@ const showConfirmPass  = ref(false);
 
             <div class="right-inner">
 
-                <!-- Logo mobile -->
-                <div class="mobile-logo">
-                    <img src="/Images/Logo.png" alt="Piston Drive" class="mobile-logo-img" />
-                </div>
+               
 
                 <!-- Tabs -->
                 <div class="tabs">

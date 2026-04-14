@@ -12,16 +12,15 @@ class CotizacionController extends Controller
 {
     public function index(): Response
     {
-        $cotizaciones = Cotizacion::with([
-                'orden.vehiculo.cliente',
-                'orden.mecanico',
-            ])
-            ->orderByRaw("FIELD(estado,'pendiente','aprobada','rechazada')")
-            ->orderByDesc('created_at')
-            ->paginate(15);
-
         return Inertia::render('Secretaria/Cotizaciones/Index', [
-            'cotizaciones' => $cotizaciones,
+            'cotizaciones'   => Cotizacion::with(['orden.vehiculo.cliente', 'orden.mecanico'])
+                                ->orderByRaw("FIELD(estado,'pendiente','aprobada','rechazada')")
+                                ->orderByDesc('created_at')
+                                ->paginate(10),
+            'totalCotizaciones' => Cotizacion::count(),
+            'totalPendientes'   => Cotizacion::where('estado', 'pendiente')->count(),
+            'totalAprobadas'    => Cotizacion::where('estado', 'aprobada')->count(),
+            'totalRechazadas'   => Cotizacion::where('estado', 'rechazada')->count(),
         ]);
     }
 

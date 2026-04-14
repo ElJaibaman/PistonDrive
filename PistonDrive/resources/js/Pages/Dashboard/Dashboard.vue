@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Link } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
 
 const props = defineProps({
   vehiculosActivos:       Array,
@@ -24,6 +25,33 @@ const fechaHoy = (() => {
 })();
 
 const horaHoy = new Date().toLocaleTimeString('es-HN', { hour: '2-digit', minute: '2-digit' }) + ' hrs';
+
+// ── Paginación vehículos (15 por página) ──────────────
+const PER_VEH = 10;
+const pageVeh = ref(1);
+const totalPagesVeh = computed(() => Math.ceil(props.vehiculosActivos.length / PER_VEH));
+const vehiculosPaginados = computed(() => {
+  const start = (pageVeh.value - 1) * PER_VEH;
+  return props.vehiculosActivos.slice(start, start + PER_VEH);
+});
+
+// ── Paginación garantías (5 por página) ───────────────
+const PER_GAR = 5;
+const pageGar = ref(1);
+const totalPagesGar = computed(() => Math.ceil(props.garantiasVigentes.length / PER_GAR));
+const garantiasPaginadas = computed(() => {
+  const start = (pageGar.value - 1) * PER_GAR;
+  return props.garantiasVigentes.slice(start, start + PER_GAR);
+});
+
+// ── Paginación cotizaciones (5 por página) ────────────
+const PER_COT = 5;
+const pageCot = ref(1);
+const totalPagesCot = computed(() => Math.ceil(props.cotizacionesPendientes.length / PER_COT));
+const cotizacionesPaginadas = computed(() => {
+  const start = (pageCot.value - 1) * PER_COT;
+  return props.cotizacionesPendientes.slice(start, start + PER_COT);
+});
 </script>
 
 <template>
@@ -45,7 +73,6 @@ const horaHoy = new Date().toLocaleTimeString('es-HN', { hour: '2-digit', minute
 
       <!-- Stats -->
       <div class="stat-grid">
-
         <div class="stat-card grey">
           <div class="stat-icon grey">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -103,7 +130,6 @@ const horaHoy = new Date().toLocaleTimeString('es-HN', { hour: '2-digit', minute
             <div class="stat-label">Cotizaciones</div>
           </div>
         </Link>
-
       </div>
 
       <!-- Two column layout -->
@@ -138,7 +164,7 @@ const horaHoy = new Date().toLocaleTimeString('es-HN', { hour: '2-digit', minute
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="orden in vehiculosActivos" :key="orden.id">
+                <tr v-for="orden in vehiculosPaginados" :key="orden.id">
                   <td><span class="client-name">{{ orden.vehiculo.cliente.nombre }}</span></td>
                   <td>
                     {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}
@@ -166,6 +192,17 @@ const horaHoy = new Date().toLocaleTimeString('es-HN', { hour: '2-digit', minute
                 </tr>
               </tbody>
             </table>
+
+            <!-- Paginación vehículos -->
+            <div class="mini-pagination" v-if="totalPagesVeh > 1">
+              <button class="mini-btn" :disabled="pageVeh === 1" @click="pageVeh--">←</button>
+              <button
+                v-for="p in totalPagesVeh" :key="p"
+                class="mini-num" :class="{ 'mini-active': p === pageVeh }"
+                @click="pageVeh = p"
+              >{{ p }}</button>
+              <button class="mini-btn" :disabled="pageVeh === totalPagesVeh" @click="pageVeh++">→</button>
+            </div>
           </div>
 
           <!-- Cotizaciones pendientes -->
@@ -183,7 +220,7 @@ const horaHoy = new Date().toLocaleTimeString('es-HN', { hour: '2-digit', minute
               <div class="card-badge orange-badge">{{ cotizacionesPendientes.length }} pendientes</div>
             </div>
 
-            <div v-for="c in cotizacionesPendientes" :key="c.id" class="cot-row">
+            <div v-for="c in cotizacionesPaginadas" :key="c.id" class="cot-row">
               <div class="cot-left">
                 <span class="cot-orden">#ORD-{{ String(c.orden.id).padStart(4, '0') }}</span>
                 <span class="cot-cliente">{{ c.orden.vehiculo.cliente.nombre }}</span>
@@ -201,6 +238,17 @@ const horaHoy = new Date().toLocaleTimeString('es-HN', { hour: '2-digit', minute
                   </button>
                 </Link>
               </div>
+            </div>
+
+            <!-- Paginación cotizaciones -->
+            <div class="mini-pagination" v-if="totalPagesCot > 1">
+              <button class="mini-btn" :disabled="pageCot === 1" @click="pageCot--">←</button>
+              <button
+                v-for="p in totalPagesCot" :key="p"
+                class="mini-num" :class="{ 'mini-active': p === pageCot }"
+                @click="pageCot = p"
+              >{{ p }}</button>
+              <button class="mini-btn" :disabled="pageCot === totalPagesCot" @click="pageCot++">→</button>
             </div>
           </div>
 
@@ -248,7 +296,7 @@ const horaHoy = new Date().toLocaleTimeString('es-HN', { hour: '2-digit', minute
               <div class="card-badge teal-badge">{{ garantiasVigentes.length }} activas</div>
             </div>
 
-            <div v-for="g in garantiasVigentes" :key="g.id" class="garantia-item">
+            <div v-for="g in garantiasPaginadas" :key="g.id" class="garantia-item">
               <div class="garantia-name">{{ g.ticket?.orden?.vehiculo?.cliente?.nombre }}</div>
               <div class="garantia-sub">Vence: {{ g.fecha_vencimiento }}</div>
               <span class="dias-chip" :class="diasRestantes(g.fecha_vencimiento) <= 5 ? 'dias-orange' : 'dias-green'">
@@ -261,6 +309,17 @@ const horaHoy = new Date().toLocaleTimeString('es-HN', { hour: '2-digit', minute
             </div>
 
             <div v-if="garantiasVigentes.length === 0" class="empty-state">Sin garantías activas</div>
+
+            <!-- Paginación garantías -->
+            <div class="mini-pagination" v-if="totalPagesGar > 1">
+              <button class="mini-btn" :disabled="pageGar === 1" @click="pageGar--">←</button>
+              <button
+                v-for="p in totalPagesGar" :key="p"
+                class="mini-num" :class="{ 'mini-active': p === pageGar }"
+                @click="pageGar = p"
+              >{{ p }}</button>
+              <button class="mini-btn" :disabled="pageGar === totalPagesGar" @click="pageGar++">→</button>
+            </div>
           </div>
 
         </div>
@@ -271,354 +330,132 @@ const horaHoy = new Date().toLocaleTimeString('es-HN', { hour: '2-digit', minute
 </template>
 
 <style scoped>
-/* ── Base ─────────────────────────────────────────────── */
 .dash-page {
   min-height: 100vh;
   background: #F7F8FA;
   padding: 28px 32px 48px;
   font-family: 'DM Sans', system-ui, sans-serif;
 }
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0; }
+.page-title { font-size: 1.5rem; font-weight: 800; color: #1A202C; letter-spacing: -0.4px; margin: 0; }
+.page-date { font-size: 0.78rem; color: #9CA3AF; margin-top: 3px; font-family: 'JetBrains Mono', monospace; }
+.badge-hora { background: white; border: 1.5px solid #E5E7EB; border-radius: 10px; padding: 7px 14px; font-size: 0.78rem; color: #6B7280; font-weight: 600; }
+.header-line { height: 3px; background: linear-gradient(to right, #C0192A, #9B1422 30%, transparent); border-radius: 2px; margin: 16px 0 28px; }
 
-/* ── Top bar ──────────────────────────────────────────── */
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0;
-}
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #1A202C;
-  letter-spacing: -0.4px;
-  margin: 0;
-}
-.page-date {
-  font-size: 0.78rem;
-  color: #9CA3AF;
-  margin-top: 3px;
-  font-family: 'JetBrains Mono', monospace;
-}
-.badge-hora {
-  background: white;
-  border: 1.5px solid #E5E7EB;
-  border-radius: 10px;
-  padding: 7px 14px;
-  font-size: 0.78rem;
-  color: #6B7280;
-  font-weight: 600;
-}
-
-.header-line {
-  height: 3px;
-  background: linear-gradient(to right, #C0192A, #9B1422 30%, transparent);
-  border-radius: 2px;
-  margin: 16px 0 28px;
-}
-
-/* ── Stat grid ────────────────────────────────────────── */
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 14px;
-  margin-bottom: 28px;
-}
+.stat-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-bottom: 28px; }
 .stat-card-link { text-decoration: none; }
-
-.stat-card {
-  background: white;
-  border-radius: 14px;
-  padding: 16px;
-  border: 1px solid #F0F0F2;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
+.stat-card { background: white; border-radius: 14px; padding: 16px; border: 1px solid #F0F0F2; box-shadow: 0 2px 8px rgba(0,0,0,0.04); position: relative; overflow: hidden; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
 .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  border-radius: 14px 14px 0 0;
-}
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 14px 14px 0 0; }
 .stat-card.grey::before  { background: #9CA3AF; }
 .stat-card.blue::before  { background: #3B82F6; }
 .stat-card.orange::before{ background: #F59E0B; }
 .stat-card.teal::before  { background: #14B8A6; }
 .stat-card.red::before   { background: #C0192A; }
-
-.stat-icon {
-  width: 36px; height: 36px;
-  border-radius: 9px;
-  display: flex; align-items: center; justify-content: center;
-  margin-bottom: 12px;
-}
+.stat-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
 .stat-icon.grey   { background: #F3F4F6; }
 .stat-icon.blue   { background: #EFF6FF; }
 .stat-icon.orange { background: #FFFBEB; }
 .stat-icon.teal   { background: #F0FDFA; }
 .stat-icon.red    { background: #FEF2F2; }
-
-.stat-num {
-  font-size: 2rem;
-  font-weight: 800;
-  color: #1A202C;
-  line-height: 1;
-  margin-bottom: 4px;
-  font-family: 'JetBrains Mono', monospace;
-}
+.stat-num { font-size: 2rem; font-weight: 800; color: #1A202C; line-height: 1; margin-bottom: 4px; font-family: 'JetBrains Mono', monospace; }
 .stat-num.blue   { color: #2563EB; }
 .stat-num.orange { color: #D97706; }
 .stat-num.teal   { color: #0D9488; }
 .stat-num.red    { color: #C0192A; }
+.stat-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: #9CA3AF; }
 
-.stat-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-  color: #9CA3AF;
-}
-
-/* ── Two column ───────────────────────────────────────── */
-.two-col {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 20px;
-  align-items: start;
-}
+.two-col { display: grid; grid-template-columns: 1fr 380px; gap: 20px; align-items: start; }
 .mb-4 { margin-bottom: 18px; }
 
-/* ── Card ─────────────────────────────────────────────── */
-.card {
-  background: white;
-  border-radius: 14px;
-  border: 1px solid #F0F0F2;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  overflow: hidden;
-}
-.card-accent {
-  height: 3px;
-  background: linear-gradient(to right, #C0192A, #9B1422 40%, transparent);
-}
+.card { background: white; border-radius: 14px; border: 1px solid #F0F0F2; box-shadow: 0 2px 8px rgba(0,0,0,0.04); overflow: hidden; }
+.card-accent { height: 3px; background: linear-gradient(to right, #C0192A, #9B1422 40%, transparent); }
 .card-accent.orange-accent { background: linear-gradient(to right, #D97706, #B45309 40%, transparent); }
 .card-accent.green-accent  { background: linear-gradient(to right, #059669, #047857 40%, transparent); }
 .card-accent.teal-accent   { background: linear-gradient(to right, #0D9488, #0F766E 40%, transparent); }
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 20px;
-  border-bottom: 1px solid #F7F8FA;
-}
-.card-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: #4A5568;
-}
-.title-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.card-badge {
-  font-size: 0.68rem;
-  background: #F3F4F6;
-  color: #6B7280;
-  padding: 3px 9px;
-  border-radius: 20px;
-  font-weight: 600;
-}
+.card-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #F7F8FA; }
+.card-title { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #4A5568; }
+.title-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.card-badge { font-size: 0.68rem; background: #F3F4F6; color: #6B7280; padding: 3px 9px; border-radius: 20px; font-weight: 600; }
 .card-badge.orange-badge { background: #FFFBEB; color: #D97706; }
 .card-badge.teal-badge   { background: #F0FDFA; color: #0D9488; }
 
-/* ── Table ────────────────────────────────────────────── */
 .vtable { width: 100%; border-collapse: collapse; }
-.vtable th {
-  font-size: 0.67rem;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: #A0AEC0;
-  font-weight: 700;
-  padding: 10px 20px;
-  text-align: left;
-  background: #FAFBFC;
-  border-bottom: 1px solid #F0F0F2;
-}
-.vtable td {
-  padding: 12px 20px;
-  font-size: 0.83rem;
-  color: #374151;
-  border-bottom: 1px solid #F9FAFB;
-}
+.vtable th { font-size: 0.67rem; text-transform: uppercase; letter-spacing: 0.6px; color: #A0AEC0; font-weight: 700; padding: 10px 20px; text-align: left; background: #FAFBFC; border-bottom: 1px solid #F0F0F2; }
+.vtable td { padding: 12px 20px; font-size: 0.83rem; color: #374151; border-bottom: 1px solid #F9FAFB; }
 .vtable tr:last-child td { border-bottom: none; }
 .vtable tr:hover td { background: #FAFBFC; }
-
 .client-name { font-weight: 600; color: #1A202C; }
-.placa {
-  background: #EDF2F7;
-  color: #2D3748;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  letter-spacing: 1px;
-  margin-left: 5px;
-}
-
-/* chips de estado — el color viene del backend vía estado_config.color */
-.chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 9px;
-  border-radius: 20px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  background: #F3F4F6;
-  color: #6B7280;
-}
-/* Si el backend manda clases Vuetify como "blue", "orange", "teal" puedes
-   mapearlas aquí o en un computed que devuelva clases propias */
-
-.eye-btn {
-  width: 28px; height: 28px;
-  background: #F3F4F6;
-  border: none;
-  border-radius: 7px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #6B7280;
-  transition: background 0.12s, color 0.12s;
-}
+.placa { background: #EDF2F7; color: #2D3748; font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 1px; margin-left: 5px; }
+.chip { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.3px; background: #F3F4F6; color: #6B7280; }
+.eye-btn { width: 28px; height: 28px; background: #F3F4F6; border: none; border-radius: 7px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: #6B7280; transition: background 0.12s, color 0.12s; }
 .eye-btn:hover { background: #DBEAFE; color: #2563EB; }
+.empty-state { text-align: center; padding: 28px 20px; font-size: 0.83rem; color: #A0AEC0; }
 
-.empty-state {
-  text-align: center;
-  padding: 28px 20px;
-  font-size: 0.83rem;
-  color: #A0AEC0;
-}
-
-/* ── Cotizaciones ─────────────────────────────────────── */
-.cot-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 20px;
-  border-bottom: 1px solid #F9FAFB;
-}
+.cot-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #F9FAFB; }
 .cot-row:last-child { border-bottom: none; }
 .cot-left { display: flex; flex-direction: column; gap: 2px; }
 .cot-right { display: flex; align-items: center; gap: 12px; }
-
-.cot-orden {
-  font-size: 0.7rem;
-  font-family: 'JetBrains Mono', monospace;
-  color: #9CA3AF;
-  font-weight: 600;
-}
+.cot-orden { font-size: 0.7rem; font-family: 'JetBrains Mono', monospace; color: #9CA3AF; font-weight: 600; }
 .cot-cliente { font-size: 0.85rem; font-weight: 700; color: #1A202C; }
-.cot-mec     { font-size: 0.72rem; color: #9CA3AF; }
-.cot-total   {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: #C0192A;
-  font-family: 'JetBrains Mono', monospace;
-}
-.btn-revisar {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  background: rgba(192,25,42,0.07);
-  color: #C0192A;
-  border: none;
-  border-radius: 8px;
-  padding: 7px 12px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.12s;
-}
+.cot-mec { font-size: 0.72rem; color: #9CA3AF; }
+.cot-total { font-size: 0.95rem; font-weight: 800; color: #C0192A; font-family: 'JetBrains Mono', monospace; }
+.btn-revisar { display: flex; align-items: center; gap: 5px; background: rgba(192,25,42,0.07); color: #C0192A; border: none; border-radius: 8px; padding: 7px 12px; font-size: 0.75rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 0.12s; }
 .btn-revisar:hover { background: rgba(192,25,42,0.14); }
 
-/* ── Ingresos ─────────────────────────────────────────── */
-.income-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 20px;
-  border-bottom: 1px solid #F9FAFB;
-}
-.income-row:last-of-type { border-bottom: none; }
-.income-month {
-  font-size: 0.8rem;
-  color: #4A5568;
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 500;
-}
+.income-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; border-bottom: 1px solid #F9FAFB; }
+.income-month { font-size: 0.8rem; color: #4A5568; font-family: 'JetBrains Mono', monospace; font-weight: 500; }
 .income-val { font-size: 0.85rem; font-weight: 700; color: #059669; }
-.income-total-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 13px 20px;
-  background: #FAFBFC;
-  border-top: 2px solid #F0F0F2;
-}
-.income-total-label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #4A5568;
-}
-.income-total-val {
-  font-size: 1rem;
-  font-weight: 800;
-  color: #C0192A;
-  font-family: 'JetBrains Mono', monospace;
-}
+.income-total-row { display: flex; justify-content: space-between; align-items: center; padding: 13px 20px; background: #FAFBFC; border-top: 2px solid #F0F0F2; }
+.income-total-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #4A5568; }
+.income-total-val { font-size: 1rem; font-weight: 800; color: #C0192A; font-family: 'JetBrains Mono', monospace; }
 
-/* ── Garantías ────────────────────────────────────────── */
-.garantia-item {
-  padding: 14px 20px;
-  border-bottom: 1px solid #F9FAFB;
-}
+.garantia-item { padding: 14px 20px; border-bottom: 1px solid #F9FAFB; }
 .garantia-item:last-child { border-bottom: none; }
 .garantia-name { font-size: 0.85rem; font-weight: 700; color: #1A202C; }
-.garantia-sub  {
-  font-size: 0.72rem;
-  color: #9CA3AF;
-  margin: 2px 0 7px;
-  font-family: 'JetBrains Mono', monospace;
-}
-.dias-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 20px;
-}
+.garantia-sub { font-size: 0.72rem; color: #9CA3AF; margin: 2px 0 7px; font-family: 'JetBrains Mono', monospace; }
+.dias-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
 .dias-green  { background: #F0FDF4; color: #16A34A; }
 .dias-orange { background: #FFFBEB; color: #D97706; }
 
-/* ── Responsive ───────────────────────────────────────── */
+/* ── Mini paginación ── */
+.mini-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 20px;
+  border-top: 1px solid #F0F0F2;
+}
+.mini-btn {
+  width: 30px; height: 30px;
+  border-radius: 7px;
+  border: 1.5px solid #E2E8F0;
+  background: white;
+  color: #4A5568;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s;
+}
+.mini-btn:hover:not(:disabled) { border-color: #C0192A; color: #C0192A; }
+.mini-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.mini-num {
+  width: 30px; height: 30px;
+  border-radius: 7px;
+  border: 1.5px solid #E2E8F0;
+  background: white;
+  color: #4A5568;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s;
+}
+.mini-num:hover { border-color: #C0192A; color: #C0192A; }
+.mini-active { background: linear-gradient(135deg, #C0192A, #9B1422); border-color: #C0192A; color: white !important; box-shadow: 0 3px 10px rgba(192,25,42,0.3); }
+
 @media (max-width: 960px) {
   .stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .two-col   { grid-template-columns: 1fr; }

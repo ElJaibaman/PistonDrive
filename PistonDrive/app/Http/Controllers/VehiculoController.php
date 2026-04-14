@@ -12,12 +12,11 @@ class VehiculoController extends Controller
 {
     public function index(): Response
     {
-        $vehiculos = Vehiculo::with('cliente')
-            ->orderBy('marca')
-            ->paginate(15);
-
         return Inertia::render('Vehiculos/Index', [
-            'vehiculos' => $vehiculos,
+            'vehiculos' => Vehiculo::with('cliente')->orderBy('marca')->paginate(10),
+            'totalVehiculos' => Vehiculo::count(),
+            'conPlaca'       => Vehiculo::whereNotNull('placa')->count(),
+            'totalMarcas'    => Vehiculo::distinct('marca')->count('marca'),
         ]);
     }
 

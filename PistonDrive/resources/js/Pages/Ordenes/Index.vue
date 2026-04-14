@@ -4,11 +4,12 @@ import { Link, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 
 const props = defineProps({
-    ordenes: {
-        type: Object,
-        default: () => ({ data: [] })
-    },
+    ordenes: { type: Object, default: () => ({ data: [] }) },
     estados: Object,
+    totalOrdenes: Number,
+    totalPendientes: Number,
+    totalEnProceso: Number,
+    totalEspAprobacion: Number,
 });
 
 const dialog = ref(false);
@@ -50,11 +51,6 @@ const cotizColorMap = {
     rechazada: { bg: 'rgba(192,25,42,0.1)',   color: '#9B1422' },
 };
 
-const totalOrdenes  = computed(() => props.ordenes.data.length);
-const enProceso     = computed(() => props.ordenes.data.filter(o => o.estado === 'en_proceso').length);
-const pendientes    = computed(() => props.ordenes.data.filter(o => o.estado === 'pendiente').length);
-const espAprobacion = computed(() => props.ordenes.data.filter(o => o.estado === 'esperando_aprobacion').length);
-
 function iniciales(nombre) {
     if (!nombre) return '?';
     return nombre.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
@@ -64,8 +60,6 @@ function iniciales(nombre) {
 <template>
     <AuthenticatedLayout>
         <div class="pd-page">
-
-            <!-- Hero -->
             <div class="pd-hero">
                 <div class="hero-content">
                     <div class="hero-left">
@@ -86,71 +80,38 @@ function iniciales(nombre) {
                         </button>
                     </Link>
                 </div>
-
-                <!-- Stats -->
                 <div class="hero-stats">
-                    <div class="stat-pill">
-                        <div class="stat-dot" style="background:#C0192A" />
-                        <span class="stat-num">{{ totalOrdenes }}</span>
-                        <span class="stat-label">Total</span>
-                    </div>
+                    <div class="stat-pill"><div class="stat-dot" style="background:#C0192A" /><span class="stat-num">{{ totalOrdenes }}</span><span class="stat-label">Total</span></div>
                     <div class="stat-divider" />
-                    <div class="stat-pill">
-                        <div class="stat-dot" style="background:#CBD5E0" />
-                        <span class="stat-num">{{ pendientes }}</span>
-                        <span class="stat-label">Pendientes</span>
-                    </div>
+                    <div class="stat-pill"><div class="stat-dot" style="background:#CBD5E0" /><span class="stat-num">{{ totalPendientes }}</span><span class="stat-label">Pendientes</span></div>
                     <div class="stat-divider" />
-                    <div class="stat-pill">
-                        <div class="stat-dot" style="background:#4299E1" />
-                        <span class="stat-num">{{ enProceso }}</span>
-                        <span class="stat-label">En proceso</span>
-                    </div>
+                    <div class="stat-pill"><div class="stat-dot" style="background:#4299E1" /><span class="stat-num">{{ totalEnProceso }}</span><span class="stat-label">En proceso</span></div>
                     <div class="stat-divider" />
-                    <div class="stat-pill">
-                        <div class="stat-dot" style="background:#ED8936" />
-                        <span class="stat-num">{{ espAprobacion }}</span>
-                        <span class="stat-label">Esp. aprobación</span>
-                    </div>
+                    <div class="stat-pill"><div class="stat-dot" style="background:#ED8936" /><span class="stat-num">{{ totalEspAprobacion }}</span><span class="stat-label">Esp. aprobación</span></div>
                 </div>
             </div>
 
-            <!-- Toolbar -->
             <div class="pd-toolbar">
                 <div class="search-wrap">
-                    <svg class="search-ico" width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <circle cx="11" cy="11" r="8" stroke="#A0AEC0" stroke-width="1.8"/>
-                        <path d="m21 21-4.35-4.35" stroke="#A0AEC0" stroke-width="1.8" stroke-linecap="round"/>
-                    </svg>
+                    <svg class="search-ico" width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#A0AEC0" stroke-width="1.8"/><path d="m21 21-4.35-4.35" stroke="#A0AEC0" stroke-width="1.8" stroke-linecap="round"/></svg>
                     <input v-model="busqueda" class="search-input" placeholder="Buscar por cliente, vehículo, mecánico o ID..." />
                     <button v-if="busqueda" class="search-clear" @click="busqueda = ''">✕</button>
                 </div>
-                <div class="results-badge" v-if="busqueda">
-                    {{ filtrados.length }} resultado{{ filtrados.length !== 1 ? 's' : '' }}
-                </div>
+                <div class="results-badge" v-if="busqueda">{{ filtrados.length }} resultado{{ filtrados.length !== 1 ? 's' : '' }}</div>
             </div>
 
-            <!-- Tabla -->
             <div class="pd-table-wrap">
                 <div class="table-top-bar" />
                 <table class="pd-table">
                     <thead>
                         <tr>
-                            <th>Orden</th>
-                            <th>Cliente</th>
-                            <th>Vehículo</th>
-                            <th>Mecánico</th>
-                            <th>Ingreso</th>
-                            <th>Estado</th>
-                            <th>Cotización</th>
-                            <th class="col-center">Acciones</th>
+                            <th>Orden</th><th>Cliente</th><th>Vehículo</th><th>Mecánico</th>
+                            <th>Ingreso</th><th>Estado</th><th>Cotización</th><th class="col-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="o in filtrados" :key="o.id" class="pd-row">
-                            <td class="cell-id">
-                                <span class="id-badge">#{{ o.id }}</span>
-                            </td>
+                            <td class="cell-id"><span class="id-badge">#{{ o.id }}</span></td>
                             <td class="cell-data">
                                 <div class="cliente-wrap">
                                     <div class="cliente-av">{{ iniciales(o.vehiculo.cliente.nombre) }}</div>
@@ -159,9 +120,7 @@ function iniciales(nombre) {
                             </td>
                             <td class="cell-data">
                                 <div class="vehiculo-wrap">
-                                    <div class="vehiculo-icon">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="#9B1422"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
-                                    </div>
+                                    <div class="vehiculo-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="#9B1422"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99z"/></svg></div>
                                     <span class="vehiculo-nombre">{{ o.vehiculo.marca }} {{ o.vehiculo.modelo }}</span>
                                 </div>
                             </td>
@@ -172,9 +131,7 @@ function iniciales(nombre) {
                                 </div>
                                 <span v-else class="data-empty">Sin asignar</span>
                             </td>
-                            <td class="cell-data">
-                                <span class="fecha-text">{{ o.fecha_ingreso }}</span>
-                            </td>
+                            <td class="cell-data"><span class="fecha-text">{{ o.fecha_ingreso }}</span></td>
                             <td class="cell-data">
                                 <span class="estado-chip" :style="{ background: estadoColorMap[o.estado]?.bg, color: estadoColorMap[o.estado]?.color }">
                                     <span class="estado-dot" :style="{ background: estadoColorMap[o.estado]?.dot }" />
@@ -182,58 +139,46 @@ function iniciales(nombre) {
                                 </span>
                             </td>
                             <td class="cell-data">
-                                <span v-if="o.cotizacion" class="cotiz-chip" :style="{ background: cotizColorMap[o.cotizacion.estado]?.bg, color: cotizColorMap[o.cotizacion.estado]?.color }">
-                                    {{ o.cotizacion.estado }}
-                                </span>
+                                <span v-if="o.cotizacion" class="cotiz-chip" :style="{ background: cotizColorMap[o.cotizacion.estado]?.bg, color: cotizColorMap[o.cotizacion.estado]?.color }">{{ o.cotizacion.estado }}</span>
                                 <span v-else class="data-empty">—</span>
                             </td>
                             <td class="cell-center">
                                 <div class="actions-wrap">
-                                    <Link :href="route('ordenes.show', o.id)">
-                                        <button class="btn-action btn-view" title="Ver detalle">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>
-                                        </button>
-                                    </Link>
-                                    <Link :href="route('ordenes.edit', o.id)">
-                                        <button class="btn-action btn-edit" title="Editar">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                                        </button>
-                                    </Link>
-                                    <button class="btn-action btn-del" title="Eliminar" @click="confirmarEliminar(o)">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polyline points="3,6 5,6 21,6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                                    </button>
+                                    <Link :href="route('ordenes.show', o.id)"><button class="btn-action btn-view" title="Ver"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg></button></Link>
+                                    <Link :href="route('ordenes.edit', o.id)"><button class="btn-action btn-edit" title="Editar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></Link>
+                                    <button class="btn-action btn-del" title="Eliminar" @click="confirmarEliminar(o)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polyline points="3,6 5,6 21,6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
                                 </div>
                             </td>
                         </tr>
                         <tr v-if="filtrados.length === 0">
                             <td colspan="8" class="empty-cell">
                                 <div class="empty-wrap">
-                                    <div class="empty-icon-ring">
-                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" stroke="#CBD5E0" stroke-width="1.5" stroke-linecap="round"/></svg>
-                                    </div>
-                                    <p class="empty-title">No hay órdenes de trabajo</p>
-                                    <p class="empty-sub" v-if="busqueda">Intenta con otro término de búsqueda</p>
+                                    <div class="empty-icon-ring"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" stroke="#CBD5E0" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+                                    <p class="empty-title">No hay órdenes</p>
+                                    <p class="empty-sub" v-if="busqueda">Intenta con otro término</p>
                                     <p class="empty-sub" v-else>Crea la primera orden para comenzar</p>
                                 </div>
                             </td>
                         </tr>
                     </tbody>
                 </table>
+
+                <!-- Paginación -->
+                <div class="pagination-wrap" v-if="ordenes.last_page > 1">
+                    <button class="page-btn" :disabled="ordenes.current_page === 1" @click="router.get(ordenes.prev_page_url)">← Anterior</button>
+                    <div class="page-numbers">
+                        <button v-for="p in ordenes.last_page" :key="p" class="page-num" :class="{ 'page-num-active': p === ordenes.current_page }" @click="router.get(ordenes.path + '?page=' + p)">{{ p }}</button>
+                    </div>
+                    <button class="page-btn" :disabled="ordenes.current_page === ordenes.last_page" @click="router.get(ordenes.next_page_url)">Siguiente →</button>
+                </div>
             </div>
         </div>
 
-        <!-- Modal eliminar -->
         <v-dialog v-model="dialog" max-width="400">
             <div class="modal-card">
                 <div class="modal-top-bar" />
                 <div class="modal-body">
-                    <div class="modal-danger-ring">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="12" r="10" stroke="#C0192A" stroke-width="2"/>
-                            <line x1="12" y1="8" x2="12" y2="12" stroke="#C0192A" stroke-width="2" stroke-linecap="round"/>
-                            <line x1="12" y1="16" x2="12.01" y2="16" stroke="#C0192A" stroke-width="2.5" stroke-linecap="round"/>
-                        </svg>
-                    </div>
+                    <div class="modal-danger-ring"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#C0192A" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="#C0192A" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="#C0192A" stroke-width="2.5" stroke-linecap="round"/></svg></div>
                     <h3 class="modal-title">¿Eliminar orden?</h3>
                     <p class="modal-desc">Vas a eliminar la orden <strong>#{{ aEliminar?.id }}</strong>.<br>Esta acción es permanente e irreversible.</p>
                     <div class="modal-actions">
@@ -248,7 +193,6 @@ function iniciales(nombre) {
 
 <style scoped>
 .pd-page { min-height: 100vh; background: #F7F8FA; padding: 0; }
-
 .pd-hero { background: white; border-bottom: 1px solid #EDF2F7; padding: 28px 32px 0; }
 .hero-content { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
 .hero-left { display: flex; align-items: center; gap: 16px; }
@@ -263,7 +207,6 @@ function iniciales(nombre) {
 .stat-num { font-size: 1.1rem; font-weight: 800; color: #2D3748; }
 .stat-label { font-size: 0.78rem; color: #A0AEC0; font-weight: 500; }
 .stat-divider { width: 1px; height: 20px; background: #EDF2F7; margin-right: 24px; }
-
 .pd-toolbar { padding: 20px 32px; display: flex; align-items: center; gap: 16px; }
 .search-wrap { position: relative; display: flex; align-items: center; max-width: 460px; flex: 1; }
 .search-ico { position: absolute; left: 14px; pointer-events: none; }
@@ -272,7 +215,6 @@ function iniciales(nombre) {
 .search-input:focus { border-color: #C0192A; box-shadow: 0 0 0 3px rgba(192,25,42,0.1); }
 .search-clear { position: absolute; right: 12px; background: none; border: none; color: #A0AEC0; cursor: pointer; font-size: 0.75rem; padding: 4px; }
 .results-badge { background: rgba(192,25,42,0.08); color: #C0192A; font-size: 0.75rem; font-weight: 700; padding: 6px 12px; border-radius: 8px; white-space: nowrap; }
-
 .pd-table-wrap { margin: 0 32px 32px; background: white; border-radius: 16px; border: 1px solid #EDF2F7; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.05); }
 .table-top-bar { height: 4px; background: linear-gradient(to right, #C0192A 0%, #9B1422 45%, #2D3748 100%); }
 .pd-table { width: 100%; border-collapse: collapse; }
@@ -283,32 +225,24 @@ function iniciales(nombre) {
 .pd-row:last-child { border-bottom: none; }
 .pd-row:hover { background: #FFF5F5; }
 .pd-row:hover .id-badge { color: #C0192A; background: rgba(192,25,42,0.08); }
-
 .cell-id { padding: 14px 16px; }
 .id-badge { font-size: 0.75rem; font-weight: 700; color: #CBD5E0; background: #F7FAFC; padding: 3px 8px; border-radius: 6px; transition: all 0.12s; }
 .cell-data { padding: 13px 16px; font-size: 0.875rem; color: #4A5568; }
 .cell-center { text-align: center; padding: 13px 16px; }
 .data-empty { color: #E2E8F0; font-size: 0.82rem; }
-
 .cliente-wrap { display: flex; align-items: center; gap: 10px; }
 .cliente-av { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, #C0192A, #9B1422); display: flex; align-items: center; justify-content: center; font-size: 0.62rem; font-weight: 800; color: white; flex-shrink: 0; }
 .cliente-nombre { font-weight: 600; color: #2D3748; font-size: 0.85rem; }
-
 .vehiculo-wrap { display: flex; align-items: center; gap: 8px; }
 .vehiculo-icon { width: 26px; height: 26px; background: rgba(192,25,42,0.06); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .vehiculo-nombre { font-weight: 600; color: #1A202C; font-size: 0.85rem; }
-
 .mecanico-wrap { display: flex; align-items: center; gap: 8px; }
 .mecanico-av { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, #4A5568, #2D3748); display: flex; align-items: center; justify-content: center; font-size: 0.58rem; font-weight: 800; color: white; flex-shrink: 0; }
 .mecanico-nombre { font-size: 0.85rem; color: #4A5568; }
-
 .fecha-text { font-size: 0.82rem; color: #718096; font-family: monospace; }
-
 .estado-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
 .estado-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-
 .cotiz-chip { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; text-transform: capitalize; }
-
 .actions-wrap { display: flex; align-items: center; justify-content: center; gap: 5px; }
 .btn-action { width: 30px; height: 30px; border-radius: 8px; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.12s, transform 0.1s; }
 .btn-action:hover { transform: scale(1.08); }
@@ -318,13 +252,20 @@ function iniciales(nombre) {
 .btn-edit:hover { background: rgba(213,147,42,0.18); }
 .btn-del { background: rgba(192,25,42,0.08); color: #C0192A; }
 .btn-del:hover { background: rgba(192,25,42,0.15); }
-
 .empty-cell { padding: 80px 16px !important; }
 .empty-wrap { text-align: center; }
 .empty-icon-ring { width: 72px; height: 72px; border-radius: 50%; background: #F7FAFC; border: 1.5px dashed #E2E8F0; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
 .empty-title { font-size: 0.9rem; font-weight: 600; color: #A0AEC0; margin: 0 0 4px; }
 .empty-sub { font-size: 0.8rem; color: #CBD5E0; margin: 0; }
-
+.pagination-wrap { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px 24px; border-top: 1px solid #EDF2F7; }
+.page-btn { background: white; border: 1.5px solid #E2E8F0; color: #4A5568; border-radius: 10px; padding: 0 18px; height: 38px; font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.page-btn:hover:not(:disabled) { border-color: #C0192A; color: #C0192A; }
+.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.page-numbers { display: flex; gap: 4px; }
+.page-num { width: 36px; height: 36px; border-radius: 8px; border: 1.5px solid #E2E8F0; background: white; color: #4A5568; font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.page-num:hover { border-color: #C0192A; color: #C0192A; }
+.page-num-active { background: linear-gradient(135deg, #C0192A, #9B1422); border-color: #C0192A; color: white; box-shadow: 0 4px 12px rgba(192,25,42,0.35); }
+.page-num-active:hover { color: white; }
 .modal-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
 .modal-top-bar { height: 4px; background: linear-gradient(to right, #C0192A, #9B1422); }
 .modal-body { padding: 32px; text-align: center; }

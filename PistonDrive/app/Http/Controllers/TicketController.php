@@ -14,12 +14,11 @@ class TicketController extends Controller
 {
     public function index(): Response
     {
-        $tickets = Ticket::with(['orden.vehiculo.cliente', 'garantia'])
-            ->orderByDesc('created_at')
-            ->paginate(15);
-
         return Inertia::render('Tickets/Index', [
-            'tickets' => $tickets,
+            'tickets'        => Ticket::with(['orden.vehiculo.cliente', 'garantia'])->orderByDesc('created_at')->paginate(10),
+            'totalTickets'   => Ticket::count(),
+            'garantiasVig'   => Garantia::where('estado', 'vigente')->count(),
+            'totalIngresos'  => Ticket::sum('total'),
         ]);
     }
 

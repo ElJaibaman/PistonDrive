@@ -13,13 +13,13 @@ class OrdenTrabajoController extends Controller
 {
     public function index(): Response
     {
-        $ordenes = OrdenTrabajo::with(['vehiculo.cliente', 'mecanico', 'cotizacion'])
-            ->orderByDesc('created_at')
-            ->paginate(15);
-
         return Inertia::render('Ordenes/Index', [
-            'ordenes' => $ordenes,
-            'estados' => OrdenTrabajo::$estados,
+            'ordenes'        => OrdenTrabajo::with(['vehiculo.cliente', 'mecanico', 'cotizacion'])->orderByDesc('created_at')->paginate(10),
+            'estados'        => OrdenTrabajo::$estados,
+            'totalOrdenes'   => OrdenTrabajo::count(),
+            'totalPendientes'=> OrdenTrabajo::where('estado', 'pendiente')->count(),
+            'totalEnProceso' => OrdenTrabajo::where('estado', 'en_proceso')->count(),
+            'totalEspAprobacion' => OrdenTrabajo::where('estado', 'esperando_aprobacion')->count(),
         ]);
     }
 

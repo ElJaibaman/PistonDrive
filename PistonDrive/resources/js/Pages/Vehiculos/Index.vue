@@ -3,7 +3,13 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Link, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 
-const props = defineProps({ vehiculos: Object });
+const props = defineProps({
+    vehiculos: Object,
+    totalVehiculos: Number,
+    conPlaca: Number,
+    totalMarcas: Number,
+});
+
 const busqueda = ref('');
 const dialog = ref(false);
 const aEliminar = ref(null);
@@ -21,14 +27,6 @@ const filtrados = computed(() => props.vehiculos.data.filter(v =>
     (v.placa && v.placa.toLowerCase().includes(busqueda.value.toLowerCase())) ||
     v.cliente.nombre.toLowerCase().includes(busqueda.value.toLowerCase())
 ));
-
-const totalVehiculos = computed(() => props.vehiculos.data.length);
-const conPlaca = computed(() => props.vehiculos.data.filter(v => v.placa).length);
-
-const marcas = computed(() => {
-    const set = new Set(props.vehiculos.data.map(v => v.marca));
-    return set.size;
-});
 
 const colorMap = {
     'negro': '#1A202C', 'blanco': '#E2E8F0', 'gris': '#718096', 'rojo': '#C0192A',
@@ -90,7 +88,7 @@ function iniciales(nombre) {
                     <div class="stat-divider" />
                     <div class="stat-pill">
                         <div class="stat-dot" style="background:#CBD5E0" />
-                        <span class="stat-num">{{ marcas }}</span>
+                        <span class="stat-num">{{ totalMarcas }}</span>
                         <span class="stat-label">Marcas distintas</span>
                     </div>
                 </div>
@@ -199,6 +197,35 @@ function iniciales(nombre) {
                         </tr>
                     </tbody>
                 </table>
+
+                <!-- Paginación -->
+                <div class="pagination-wrap" v-if="vehiculos.last_page > 1">
+                    <button
+                        class="page-btn"
+                        :disabled="vehiculos.current_page === 1"
+                        @click="router.get(vehiculos.prev_page_url)"
+                    >
+                        ← Anterior
+                    </button>
+                    <div class="page-numbers">
+                        <button
+                            v-for="page in vehiculos.last_page"
+                            :key="page"
+                            class="page-num"
+                            :class="{ 'page-num-active': page === vehiculos.current_page }"
+                            @click="router.get(vehiculos.path + '?page=' + page)"
+                        >
+                            {{ page }}
+                        </button>
+                    </div>
+                    <button
+                        class="page-btn"
+                        :disabled="vehiculos.current_page === vehiculos.last_page"
+                        @click="router.get(vehiculos.next_page_url)"
+                    >
+                        Siguiente →
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -331,6 +358,34 @@ function iniciales(nombre) {
 .empty-icon-ring { width: 72px; height: 72px; border-radius: 50%; background: #F7FAFC; border: 1.5px dashed #E2E8F0; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
 .empty-title { font-size: 0.9rem; font-weight: 600; color: #A0AEC0; margin: 0 0 4px; }
 .empty-sub { font-size: 0.8rem; color: #CBD5E0; margin: 0; }
+
+.pagination-wrap {
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; padding: 16px 24px;
+    border-top: 1px solid #EDF2F7;
+}
+.page-btn {
+    background: white; border: 1.5px solid #E2E8F0; color: #4A5568;
+    border-radius: 10px; padding: 0 18px; height: 38px;
+    font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: all 0.15s;
+}
+.page-btn:hover:not(:disabled) { border-color: #C0192A; color: #C0192A; }
+.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.page-numbers { display: flex; gap: 4px; }
+.page-num {
+    width: 36px; height: 36px; border-radius: 8px;
+    border: 1.5px solid #E2E8F0; background: white;
+    color: #4A5568; font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.page-num:hover { border-color: #C0192A; color: #C0192A; }
+.page-num-active {
+    background: linear-gradient(135deg, #C0192A, #9B1422);
+    border-color: #C0192A; color: white;
+    box-shadow: 0 4px 12px rgba(192,25,42,0.35);
+}
+.page-num-active:hover { color: white; }
 
 .modal-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
 .modal-top-bar { height: 4px; background: linear-gradient(to right, #C0192A, #9B1422); }

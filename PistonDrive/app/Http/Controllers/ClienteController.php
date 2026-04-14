@@ -11,12 +11,11 @@ class ClienteController extends Controller
 {
     public function index(): Response
     {
-        $clientes = Cliente::withCount('vehiculos')
-            ->orderBy('nombre')
-            ->paginate(15);
-
         return Inertia::render('Clientes/Index', [
-            'clientes' => $clientes,
+            'clientes'      => Cliente::withCount('vehiculos')->orderBy('nombre')->paginate(10),
+            'totalClientes' => Cliente::count(),
+            'conVehiculos'  => Cliente::has('vehiculos')->count(),
+            'sinVehiculos'  => Cliente::doesntHave('vehiculos')->count(),
         ]);
     }
 
